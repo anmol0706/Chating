@@ -11,7 +11,7 @@ class FriendProvider with ChangeNotifier {
   List<FriendRequest> _receivedRequests = [];
   List<FriendRequest> _sentRequests = [];
   List<PrivateChat> _privateChats = [];
-  
+
   bool _isLoading = false;
   String? _error;
 
@@ -24,15 +24,15 @@ class FriendProvider with ChangeNotifier {
   String? get error => _error;
 
   // Get pending received requests count
-  int get pendingReceivedRequestsCount => 
+  int get pendingReceivedRequestsCount =>
       _receivedRequests.where((req) => req.isPending).length;
 
   // Get pending sent requests count
-  int get pendingSentRequestsCount => 
+  int get pendingSentRequestsCount =>
       _sentRequests.where((req) => req.isPending).length;
 
   // Get total unread private messages count
-  int get totalUnreadMessagesCount => 
+  int get totalUnreadMessagesCount =>
       _privateChats.fold(0, (sum, chat) => sum + (chat.unreadCount ?? 0));
 
   void _setLoading(bool loading) {
@@ -50,7 +50,7 @@ class FriendProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      
+
       _friends = await _apiService.getFriendsList(search: search);
       notifyListeners();
     } catch (e) {
@@ -65,14 +65,14 @@ class FriendProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      
+
       final receivedFuture = _apiService.getReceivedFriendRequests();
       final sentFuture = _apiService.getSentFriendRequests();
-      
+
       final results = await Future.wait([receivedFuture, sentFuture]);
       _receivedRequests = results[0];
       _sentRequests = results[1];
-      
+
       notifyListeners();
     } catch (e) {
       _setError('Failed to load friend requests: $e');
@@ -86,7 +86,7 @@ class FriendProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      
+
       _privateChats = await _apiService.getUserPrivateChats();
       notifyListeners();
     } catch (e) {
@@ -100,15 +100,15 @@ class FriendProvider with ChangeNotifier {
   Future<bool> sendFriendRequest(String receiverId, {String message = ''}) async {
     try {
       _setError(null);
-      
+
       final friendRequest = await _apiService.sendFriendRequest(
         receiverId: receiverId,
         message: message,
       );
-      
+
       _sentRequests.insert(0, friendRequest);
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       _setError('Failed to send friend request: $e');
@@ -120,19 +120,19 @@ class FriendProvider with ChangeNotifier {
   Future<bool> acceptFriendRequest(String requestId) async {
     try {
       _setError(null);
-      
+
       final updatedRequest = await _apiService.acceptFriendRequest(requestId);
-      
+
       // Update the request in the list
       final index = _receivedRequests.indexWhere((req) => req.id == requestId);
       if (index != -1) {
         _receivedRequests[index] = updatedRequest;
       }
-      
+
       // Refresh friends list and private chats
       await loadFriends();
       await loadPrivateChats();
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -145,15 +145,15 @@ class FriendProvider with ChangeNotifier {
   Future<bool> declineFriendRequest(String requestId) async {
     try {
       _setError(null);
-      
+
       final updatedRequest = await _apiService.declineFriendRequest(requestId);
-      
+
       // Update the request in the list
       final index = _receivedRequests.indexWhere((req) => req.id == requestId);
       if (index != -1) {
         _receivedRequests[index] = updatedRequest;
       }
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -166,15 +166,15 @@ class FriendProvider with ChangeNotifier {
   Future<bool> cancelFriendRequest(String requestId) async {
     try {
       _setError(null);
-      
+
       final updatedRequest = await _apiService.cancelFriendRequest(requestId);
-      
+
       // Update the request in the list
       final index = _sentRequests.indexWhere((req) => req.id == requestId);
       if (index != -1) {
         _sentRequests[index] = updatedRequest;
       }
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -187,16 +187,16 @@ class FriendProvider with ChangeNotifier {
   Future<bool> removeFriend(String friendId) async {
     try {
       _setError(null);
-      
+
       await _apiService.removeFriend(friendId);
-      
+
       // Remove from friends list
       _friends.removeWhere((friend) => friend.id == friendId);
-      
+
       // Remove associated private chat
-      _privateChats.removeWhere((chat) => 
+      _privateChats.removeWhere((chat) =>
           chat.participants.any((p) => p.id == friendId));
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -209,16 +209,16 @@ class FriendProvider with ChangeNotifier {
   Future<PrivateChat?> getOrCreatePrivateChat(String friendId) async {
     try {
       _setError(null);
-      
+
       final privateChat = await _apiService.getOrCreatePrivateChat(friendId);
-      
+
       // Update private chats list if not already present
       final existingIndex = _privateChats.indexWhere((chat) => chat.id == privateChat.id);
       if (existingIndex == -1) {
         _privateChats.insert(0, privateChat);
         notifyListeners();
       }
-      
+
       return privateChat;
     } catch (e) {
       _setError('Failed to create private chat: $e');
@@ -254,7 +254,7 @@ class FriendProvider with ChangeNotifier {
         respondedAt: DateTime.now(),
       );
     }
-    
+
     // Update in sent requests
     final sentIndex = _sentRequests.indexWhere((req) => req.id == requestId);
     if (sentIndex != -1) {
@@ -263,7 +263,7 @@ class FriendProvider with ChangeNotifier {
         respondedAt: DateTime.now(),
       );
     }
-    
+
     notifyListeners();
   }
 
@@ -274,28 +274,34 @@ class FriendProvider with ChangeNotifier {
 
   // Check if friend request exists
   bool hasPendingFriendRequest(String userId) {
-    return _sentRequests.any((req) => 
+    return _sentRequests.any((req) =>
         req.receiver.id == userId && req.isPending) ||
-           _receivedRequests.any((req) => 
+           _receivedRequests.any((req) =>
         req.sender.id == userId && req.isPending);
   }
 
   // Get friend request status with user
   String? getFriendRequestStatus(String userId) {
     // Check sent requests
-    final sentRequest = _sentRequests.firstWhere(
-      (req) => req.receiver.id == userId && req.isPending,
-      orElse: () => _sentRequests.first,
-    );
-    if (sentRequest.receiver.id == userId) return 'sent';
-    
+    try {
+      _sentRequests.firstWhere(
+        (req) => req.receiver.id == userId && req.isPending,
+      );
+      return 'sent';
+    } catch (e) {
+      // No matching sent request found
+    }
+
     // Check received requests
-    final receivedRequest = _receivedRequests.firstWhere(
-      (req) => req.sender.id == userId && req.isPending,
-      orElse: () => _receivedRequests.first,
-    );
-    if (receivedRequest.sender.id == userId) return 'received';
-    
+    try {
+      _receivedRequests.firstWhere(
+        (req) => req.sender.id == userId && req.isPending,
+      );
+      return 'received';
+    } catch (e) {
+      // No matching received request found
+    }
+
     return null;
   }
 

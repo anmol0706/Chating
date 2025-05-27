@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friend_provider.dart';
 import '../../models/user.dart';
+import '../../models/friend_request.dart';
 import '../../services/api_service.dart';
 
 class UsersScreen extends StatefulWidget {
@@ -540,24 +541,465 @@ class SearchUserTile extends StatelessWidget {
   }
 }
 
-// Placeholder classes - these will be implemented in separate files
 class FriendTile extends StatelessWidget {
   final User user;
   const FriendTile({super.key, required this.user});
+
   @override
-  Widget build(BuildContext context) => const SizedBox();
+  Widget build(BuildContext context) {
+    return Consumer<FriendProvider>(
+      builder: (context, friendProvider, child) {
+        return ListTile(
+          leading: Stack(
+            children: [
+              CircleAvatar(
+                backgroundColor: Theme.of(context).primaryColor,
+                child: user.profilePicture.isNotEmpty
+                    ? ClipOval(
+                        child: Image.network(
+                          user.profilePicture,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Text(
+                              user.username[0].toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Text(
+                        user.username[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              if (user.isOnline)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          title: Text(
+            user.username,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            user.isOnline ? 'Online' : 'Last seen ${_formatLastSeen(user.lastSeen)}',
+            style: TextStyle(
+              color: user.isOnline ? Colors.green : Colors.grey[600],
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () async {
+                  final privateChat = await friendProvider.getOrCreatePrivateChat(user.id);
+                  if (privateChat != null && context.mounted) {
+                    Navigator.pushNamed(context, '/private-chat', arguments: privateChat);
+                  }
+                },
+                icon: const Icon(Icons.message),
+                tooltip: 'Message',
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'remove') {
+                    _showRemoveFriendDialog(context, friendProvider);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'remove',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_remove, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Remove Friend'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRemoveFriendDialog(BuildContext context, FriendProvider friendProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Friend'),
+        content: Text('Are you sure you want to remove ${user.username} from your friends?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await friendProvider.removeFriend(user.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? 'Removed ${user.username} from friends'
+                        : 'Failed to remove friend'),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLastSeen(DateTime? lastSeen) {
+    if (lastSeen == null) return 'unknown';
+
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
+    }
+  }
 }
 
 class ReceivedRequestTile extends StatelessWidget {
-  final dynamic request;
+  final FriendRequest request;
   const ReceivedRequestTile({super.key, required this.request});
+
   @override
-  Widget build(BuildContext context) => const SizedBox();
+  Widget build(BuildContext context) {
+    return Consumer<FriendProvider>(
+      builder: (context, friendProvider, child) {
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ListTile(
+            leading: Stack(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: request.sender.profilePicture.isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            request.sender.profilePicture,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Text(
+                                request.sender.username[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Text(
+                          request.sender.username[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+                if (request.sender.isOnline)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            title: Text(
+              request.sender.username,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (request.message.isNotEmpty)
+                  Text(
+                    request.message,
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                Text(
+                  'Sent ${_formatTime(request.createdAt)}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    final success = await friendProvider.acceptFriendRequest(request.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success
+                              ? 'Accepted friend request from ${request.sender.username}'
+                              : 'Failed to accept friend request'),
+                          backgroundColor: success ? Colors.green : Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  tooltip: 'Accept',
+                ),
+                IconButton(
+                  onPressed: () async {
+                    final success = await friendProvider.declineFriendRequest(request.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success
+                              ? 'Declined friend request from ${request.sender.username}'
+                              : 'Failed to decline friend request'),
+                          backgroundColor: success ? Colors.orange : Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  tooltip: 'Decline',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
+    }
+  }
 }
 
 class SentRequestTile extends StatelessWidget {
-  final dynamic request;
+  final FriendRequest request;
   const SentRequestTile({super.key, required this.request});
+
   @override
-  Widget build(BuildContext context) => const SizedBox();
+  Widget build(BuildContext context) {
+    return Consumer<FriendProvider>(
+      builder: (context, friendProvider, child) {
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ListTile(
+            leading: Stack(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: request.receiver.profilePicture.isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            request.receiver.profilePicture,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Text(
+                                request.receiver.username[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : Text(
+                          request.receiver.username[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+                if (request.receiver.isOnline)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            title: Text(
+              request.receiver.username,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (request.message.isNotEmpty)
+                  Text(
+                    request.message,
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                Text(
+                  'Sent ${_formatTime(request.createdAt)}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: const Text(
+                    'Pending',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => _showCancelDialog(context, friendProvider),
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  tooltip: 'Cancel Request',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCancelDialog(BuildContext context, FriendProvider friendProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Friend Request'),
+        content: Text('Are you sure you want to cancel the friend request to ${request.receiver.username}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await friendProvider.cancelFriendRequest(request.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? 'Cancelled friend request to ${request.receiver.username}'
+                        : 'Failed to cancel friend request'),
+                    backgroundColor: success ? Colors.orange : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'just now';
+    }
+  }
 }
