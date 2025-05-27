@@ -19,12 +19,37 @@ const server = http.createServer(app);
 // CORS origins configuration
 const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')
-  : ["http://localhost:3000", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082"];
+  : [
+      "http://localhost:3000",
+      "http://localhost:8080",
+      "http://localhost:8081",
+      "http://localhost:8082",
+      "http://localhost:53086",  // Flutter web dev server
+      "http://127.0.0.1:53086",  // Flutter web dev server alternative
+      "http://localhost:*",      // Allow any localhost port
+      "http://127.0.0.1:*"       // Allow any 127.0.0.1 port
+    ];
 
 const io = socketIo(server, {
   cors: {
-    origin: corsOrigins,
-    methods: ["GET", "POST"]
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps)
+      if (!origin) return callback(null, true);
+
+      // Allow all localhost and 127.0.0.1 origins during development
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+
+      // Check against configured origins
+      if (corsOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -35,7 +60,22 @@ connectDB();
 app.use(helmet());
 app.use(morgan('combined'));
 app.use(cors({
-  origin: corsOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow all localhost and 127.0.0.1 origins during development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+
+    // Check against configured origins
+    if (corsOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
