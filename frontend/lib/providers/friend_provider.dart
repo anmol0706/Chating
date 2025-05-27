@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import '../models/user.dart';
 import '../models/friend_request.dart';
@@ -111,6 +112,10 @@ class FriendProvider with ChangeNotifier {
     try {
       _setError(null);
 
+      if (kDebugMode) {
+        debugPrint('FriendProvider: Sending friend request to $receiverId');
+      }
+
       final friendRequest = await _apiService.sendFriendRequest(
         receiverId: receiverId,
         message: message,
@@ -123,7 +128,18 @@ class FriendProvider with ChangeNotifier {
 
       return true;
     } catch (e) {
-      _setError('Failed to send friend request: $e');
+      if (kDebugMode) {
+        debugPrint('FriendProvider: Error sending friend request: $e');
+      }
+
+      String errorMessage = 'Failed to send friend request';
+      if (e is ApiException) {
+        errorMessage = e.message;
+      } else {
+        errorMessage = '$errorMessage: $e';
+      }
+
+      _setError(errorMessage);
       return false;
     }
   }

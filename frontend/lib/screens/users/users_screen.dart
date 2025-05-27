@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -511,6 +512,12 @@ class SearchUserTile extends StatelessWidget {
 
   Future<void> _sendFriendRequest(BuildContext context, FriendProvider friendProvider) async {
     try {
+      // Debug: Check user ID format
+      if (kDebugMode) {
+        debugPrint('Sending friend request to user ID: ${user.id}');
+        debugPrint('User details: ${user.username}, ${user.email}');
+      }
+
       final success = await friendProvider.sendFriendRequest(user.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -295,11 +295,25 @@ class ApiService {
     String message = '',
   }) async {
     try {
+      // Check authentication
+      if (_token == null) {
+        throw ApiException(
+          message: 'Not authenticated. Please login again.',
+          statusCode: 401,
+        );
+      }
+
       // Debug logging only in debug mode
       if (kDebugMode) {
         debugPrint('Sending friend request to: $receiverId');
+        debugPrint('Current user: ${_currentUser?.id}');
+        debugPrint('Token exists: ${_token != null}');
         debugPrint('API URL: $baseUrl/friends/request');
         debugPrint('Headers: $_headers');
+        debugPrint('Request body: ${json.encode({
+          'receiverId': receiverId,
+          'message': message,
+        })}');
       }
 
       final response = await http.post(
