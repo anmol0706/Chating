@@ -458,15 +458,18 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
               Navigator.pop(context);
               try {
                 await _apiService.deletePrivateChat(widget.privateChat.id);
                 if (mounted) {
-                  Navigator.of(context).pop();
+                  navigator.pop();
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Failed to delete chat: $e')),
                   );
                 }

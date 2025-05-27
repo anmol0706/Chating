@@ -58,9 +58,10 @@ class _UsersScreenState extends State<UsersScreen> with TickerProviderStateMixin
       _searchQuery = query;
     });
 
+    final currentUser = Provider.of<AuthProvider>(context, listen: false).currentUser;
+
     try {
       final users = await _apiService.getUsers(search: query);
-      final currentUser = Provider.of<AuthProvider>(context, listen: false).currentUser;
 
       // Filter out current user
       final filteredUsers = users.where((user) => user.id != currentUser?.id).toList();
