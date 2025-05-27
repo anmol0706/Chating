@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import '../models/user.dart';
 import '../models/friend_request.dart';
 import '../models/private_chat.dart';
@@ -37,12 +37,16 @@ class FriendProvider with ChangeNotifier {
 
   void _setLoading(bool loading) {
     _isLoading = loading;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void _setError(String? error) {
     _error = error;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Load friends list
@@ -52,7 +56,9 @@ class FriendProvider with ChangeNotifier {
       _setError(null);
 
       _friends = await _apiService.getFriendsList(search: search);
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     } catch (e) {
       _setError('Failed to load friends: $e');
     } finally {
@@ -73,7 +79,9 @@ class FriendProvider with ChangeNotifier {
       _receivedRequests = results[0];
       _sentRequests = results[1];
 
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     } catch (e) {
       _setError('Failed to load friend requests: $e');
     } finally {
@@ -88,7 +96,9 @@ class FriendProvider with ChangeNotifier {
       _setError(null);
 
       _privateChats = await _apiService.getUserPrivateChats();
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     } catch (e) {
       _setError('Failed to load private chats: $e');
     } finally {
@@ -107,7 +117,9 @@ class FriendProvider with ChangeNotifier {
       );
 
       _sentRequests.insert(0, friendRequest);
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
 
       return true;
     } catch (e) {
@@ -133,7 +145,9 @@ class FriendProvider with ChangeNotifier {
       await loadFriends();
       await loadPrivateChats();
 
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
       return true;
     } catch (e) {
       _setError('Failed to accept friend request: $e');
@@ -154,7 +168,9 @@ class FriendProvider with ChangeNotifier {
         _receivedRequests[index] = updatedRequest;
       }
 
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
       return true;
     } catch (e) {
       _setError('Failed to decline friend request: $e');
@@ -175,7 +191,9 @@ class FriendProvider with ChangeNotifier {
         _sentRequests[index] = updatedRequest;
       }
 
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
       return true;
     } catch (e) {
       _setError('Failed to cancel friend request: $e');
@@ -197,7 +215,9 @@ class FriendProvider with ChangeNotifier {
       _privateChats.removeWhere((chat) =>
           chat.participants.any((p) => p.id == friendId));
 
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
       return true;
     } catch (e) {
       _setError('Failed to remove friend: $e');
@@ -216,7 +236,9 @@ class FriendProvider with ChangeNotifier {
       final existingIndex = _privateChats.indexWhere((chat) => chat.id == privateChat.id);
       if (existingIndex == -1) {
         _privateChats.insert(0, privateChat);
-        notifyListeners();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       }
 
       return privateChat;
@@ -234,14 +256,18 @@ class FriendProvider with ChangeNotifier {
       // Move to top of list
       _privateChats.removeAt(index);
       _privateChats.insert(0, updatedChat);
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 
   // Add new friend request (for real-time updates)
   void addReceivedFriendRequest(FriendRequest request) {
     _receivedRequests.insert(0, request);
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Update friend request status (for real-time updates)
@@ -264,7 +290,9 @@ class FriendProvider with ChangeNotifier {
       );
     }
 
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Check if user is a friend
@@ -313,6 +341,8 @@ class FriendProvider with ChangeNotifier {
     _privateChats.clear();
     _error = null;
     _isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 }

@@ -510,16 +510,27 @@ class SearchUserTile extends StatelessWidget {
   }
 
   Future<void> _sendFriendRequest(BuildContext context, FriendProvider friendProvider) async {
-    final success = await friendProvider.sendFriendRequest(user.id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success
-              ? 'Friend request sent to ${user.username}'
-              : 'Failed to send friend request'),
-          backgroundColor: success ? Colors.green : Colors.red,
-        ),
-      );
+    try {
+      final success = await friendProvider.sendFriendRequest(user.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Friend request sent to ${user.username}'
+                : friendProvider.error ?? 'Failed to send friend request'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

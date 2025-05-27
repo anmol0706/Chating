@@ -51,13 +51,22 @@ class ApiService {
 
   // Handle API response
   Map<String, dynamic> _handleResponse(http.Response response) {
-    final data = json.decode(response.body);
+    try {
+      final data = json.decode(response.body);
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data;
-    } else {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return data;
+      } else {
+        print('API Error - Status: ${response.statusCode}, Body: ${response.body}');
+        throw ApiException(
+          message: data['message'] ?? data['error'] ?? 'Unknown error',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('JSON Decode Error: $e, Response body: ${response.body}');
       throw ApiException(
-        message: data['message'] ?? data['error'] ?? 'Unknown error',
+        message: 'Failed to parse server response',
         statusCode: response.statusCode,
       );
     }
@@ -276,17 +285,29 @@ class ApiService {
     required String receiverId,
     String message = '',
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/friends/request'),
-      headers: _headers,
-      body: json.encode({
-        'receiverId': receiverId,
-        'message': message,
-      }),
-    );
+    try {
+      print('Sending friend request to: $receiverId');
+      print('API URL: $baseUrl/friends/request');
+      print('Headers: $_headers');
 
-    final data = _handleResponse(response);
-    return FriendRequest.fromJson(data['friendRequest']);
+      final response = await http.post(
+        Uri.parse('$baseUrl/friends/request'),
+        headers: _headers,
+        body: json.encode({
+          'receiverId': receiverId,
+          'message': message,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      final data = _handleResponse(response);
+      return FriendRequest.fromJson(data['friendRequest']);
+    } catch (e) {
+      print('Send friend request error: $e');
+      rethrow;
+    }
   }
 
   Future<List<FriendRequest>> getReceivedFriendRequests({
