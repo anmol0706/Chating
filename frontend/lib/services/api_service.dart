@@ -8,7 +8,7 @@ import '../models/friend_request.dart';
 import '../models/private_chat.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3001/api';
+  static const String baseUrl = 'https://chating-657p.onrender.com/api';
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();

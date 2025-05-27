@@ -5,7 +5,7 @@ import '../models/message.dart';
 import 'api_service.dart';
 
 class SocketService {
-  static const String serverUrl = 'http://localhost:3001';
+  static const String serverUrl = 'https://chating-657p.onrender.com';
 
   // Singleton pattern
   static final SocketService _instance = SocketService._internal();
