@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
@@ -57,14 +58,22 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return data;
       } else {
-        print('API Error - Status: ${response.statusCode}, Body: ${response.body}');
+        // Log error in debug mode only
+        assert(() {
+          debugPrint('API Error - Status: ${response.statusCode}, Body: ${response.body}');
+          return true;
+        }());
         throw ApiException(
           message: data['message'] ?? data['error'] ?? 'Unknown error',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
-      print('JSON Decode Error: $e, Response body: ${response.body}');
+      // Log error in debug mode only
+      assert(() {
+        debugPrint('JSON Decode Error: $e, Response body: ${response.body}');
+        return true;
+      }());
       throw ApiException(
         message: 'Failed to parse server response',
         statusCode: response.statusCode,
@@ -286,9 +295,12 @@ class ApiService {
     String message = '',
   }) async {
     try {
-      print('Sending friend request to: $receiverId');
-      print('API URL: $baseUrl/friends/request');
-      print('Headers: $_headers');
+      // Debug logging only in debug mode
+      if (kDebugMode) {
+        debugPrint('Sending friend request to: $receiverId');
+        debugPrint('API URL: $baseUrl/friends/request');
+        debugPrint('Headers: $_headers');
+      }
 
       final response = await http.post(
         Uri.parse('$baseUrl/friends/request'),
@@ -299,13 +311,17 @@ class ApiService {
         }),
       ).timeout(const Duration(seconds: 30));
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      if (kDebugMode) {
+        debugPrint('Response status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+      }
 
       final data = _handleResponse(response);
       return FriendRequest.fromJson(data['friendRequest']);
     } catch (e) {
-      print('Send friend request error: $e');
+      if (kDebugMode) {
+        debugPrint('Send friend request error: $e');
+      }
       rethrow;
     }
   }
